@@ -3,15 +3,27 @@ open System Lake DSL
 
 package SDL3
 
-def sdlGitRepo : String := "https://github.com/libsdl-org/SDL.git"
 -- pin to a specific commit to avoid breakages
-def sdlGitRev : String := "f3a9f66292d49322652be01ee93412d0e9b74f0b"
-def sdlImageGitRepo : String := "https://github.com/libsdl-org/SDL_image.git"
-def sdlImageGitRev : String := "d354e3d5146117f8b2f14096800965e56f9f7bfc"
-def sdlTtfGitRepo : String := "https://github.com/libsdl-org/SDL_ttf.git"
-def sdlTtfGitRev : String := "6b6bd588e8646360b08f624fb601cc2ec75c6ada"
-def sdlMixerGitRepo : String := "https://github.com/libsdl-org/SDL_mixer.git"
-def sdlMixerGitRev : String := "5cdf029bae982df1d6c210f915fc151a616d982f"
+structure GitDep where
+  repo : String
+  rev : String
+
+def sdlDep : GitDep := {
+  repo := "https://github.com/libsdl-org/SDL.git"
+  rev := "f3a9f66292d49322652be01ee93412d0e9b74f0b"
+}
+def sdlImageDep : GitDep := {
+  repo := "https://github.com/libsdl-org/SDL_image.git"
+  rev := "d354e3d5146117f8b2f14096800965e56f9f7bfc"
+}
+def sdlTtfDep : GitDep := {
+  repo := "https://github.com/libsdl-org/SDL_ttf.git"
+  rev := "6b6bd588e8646360b08f624fb601cc2ec75c6ada"
+}
+def sdlMixerDep : GitDep := {
+  repo := "https://github.com/libsdl-org/SDL_mixer.git"
+  rev := "5cdf029bae982df1d6c210f915fc151a616d982f"
+}
 -- TODO: at some point, we should figure out a better way to set the C compiler
 def compiler := if Platform.isWindows then "gcc" else "cc"
 
@@ -31,19 +43,18 @@ target sdlTtfDir pkg : FilePath := do
 target sdlMixerDir pkg : FilePath := do
   return .pure (pkg.dir / "vendor" / "SDL_mixer")
 
-def cloneGitRepo (repo : String) (rev : String) (dstDir : FilePath) : FetchM (Unit) := do
+def GitDep.clone (dep : GitDep) (dstDir : FilePath) : FetchM Unit := do
   let doesExist ← dstDir.pathExists
   if !doesExist then
-    logInfo s!"Cloning {repo} into {dstDir}"
-    let clone ← IO.Process.output { cmd := "git", args := #["clone", "--revision", rev, "--single-branch", "--depth", "1", "--recursive", repo, dstDir.toString] }
+    logInfo s!"Cloning {dep.repo} into {dstDir}"
+    let clone ← IO.Process.output { cmd := "git", args := #["clone", "--revision", dep.rev, "--single-branch", "--depth", "1", "--recursive", dep.repo, dstDir.toString] }
     if clone.exitCode != 0 then
-      logError s!"Error cloning {repo}: {clone.stderr}"
+      logError s!"Error cloning {dep.repo}: {clone.stderr}"
     else
-      logInfo s!"{repo} cloned successfully"
+      logInfo s!"{dep.repo} cloned successfully"
       logInfo clone.stdout
   else
     logInfo s!"Directory {dstDir} already exists, skipping clone"
-  pure ()
 
 def copyBinaries (sourceDir : FilePath) : FetchM (Unit) := do
   -- manually copy the DLLs we need to .lake/build/bin/ in the root directory for the game to work
@@ -139,10 +150,10 @@ target libleansdl pkg : FilePath := do
   let sdlTtfRepoDir ← (← sdlTtfDir.fetch).await
   let sdlMixerRepoDir ← (← sdlMixerDir.fetch).await
 
-  cloneGitRepo sdlGitRepo sdlGitRev sdlRepoDir
-  cloneGitRepo sdlImageGitRepo sdlImageGitRev sdlImageRepoDir
-  cloneGitRepo sdlTtfGitRepo sdlTtfGitRev sdlTtfRepoDir
-  cloneGitRepo sdlMixerGitRepo sdlMixerGitRev sdlMixerRepoDir
+  sdlDep.clone sdlRepoDir
+  sdlImageDep.clone sdlImageRepoDir
+  sdlTtfDep.clone sdlTtfRepoDir
+  sdlMixerDep.clone sdlMixerRepoDir
 
   -- build all the libraries we need
   buildCMakeProject sdlRepoDir #[]
