@@ -175,23 +175,29 @@ target libleansdl pkg : FilePath := do
 
 def libList : TargetArray Dynlib := #[libSDL3, libSDL3Image, libSDL3Ttf, libSDL3Mixer]
 
+-- make sure to copy these link args into whatever project is using this library in order for it to work
+-- This is because without "-rpath=$ORIGIN", the Linux executable will not load dynlibs next to the executable (i.e., the SDL ones you've copied there).
+def moreLinkArgs: Array String := if Platform.isWindows
+  then
+    #[]
+  else
+    #["-Wl,--allow-shlib-undefined", "-Wl,-rpath=$ORIGIN"]
+
 @[default_target]
 lean_lib SDL where
   moreLinkObjs := #[libleansdl]
   moreLinkLibs := libList
-  -- make sure to copy these link args into whatever project is using this library in order for it to work
-  -- This is because without "-rpath=$ORIGIN", the Linux executable will not load dynlibs next to the executable (i.e., the SDL ones you've copied there).
-  moreLinkArgs := if !Platform.isWindows then #["-Wl,--allow-shlib-undefined", "-Wl,-rpath=$ORIGIN"] else #[]
+  moreLinkArgs := moreLinkArgs
 
 lean_exe «test-app» where
   root := `TestApp
   moreLinkObjs := #[libleansdl]
   moreLinkLibs := libList
-  moreLinkArgs := if !Platform.isWindows then #["-Wl,--allow-shlib-undefined", "-Wl,-rpath=$ORIGIN"] else #[]
+  moreLinkArgs := moreLinkArgs
 
 lean_exe «webcam-app» where
     root := `WebcamApp
     moreLinkObjs := #[libleansdl]
     moreLinkLibs := libList
-    moreLinkArgs := if !Platform.isWindows then #["-Wl,--allow-shlib-undefined", "-Wl,-rpath=$ORIGIN"] else #[]
+    moreLinkArgs := moreLinkArgs
 
