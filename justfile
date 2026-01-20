@@ -26,7 +26,7 @@ run-webcam-demo: build-webcam-demo
 
 
 _build binary-name:
-    lake build {{binary-name}}
+    lake build {{binary-name}} --verbose
 
 _perform_nix_patch binary-name:
     patchelf --set-interpreter /usr/lib/ld-linux-x86-64.so.2 .lake/build/bin/{{binary-name}}
