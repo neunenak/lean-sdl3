@@ -77,12 +77,16 @@ target sdl.o pkg : FilePath := do
   let sdlTtfDir : FilePath ← (← sdlTtfDir.fetch).await
   let sdlMixerDir : FilePath ← (← sdlMixerDir.fetch).await
 
-  let sdlInclude := sdlRepoDir / "include/"
-  let sdlImageInclude := sdlImageDir / "include/"
-  let sdlTtfInclude := sdlTtfDir / "include/"
-  let sdlMixerInclude := sdlMixerDir / "include/"
+  let includeDirs : List FilePath := [sdlRepoDir, sdlImageDir, sdlTtfDir, sdlMixerDir].map
+    (fun dir => dir / "include/")
 
-  buildO oFile srcJob #[] #["-fPIC", s!"-I{sdlInclude}", s!"-I{sdlImageInclude}", s!"-I{sdlTtfInclude}", s!"-I{sdlMixerInclude}", "-D_REENTRANT", s!"-I{leanInclude}"] compiler
+  let flags: List String := ["-fPIC"] ++
+    includeDirs.map (fun dir => s!"-I{dir}") ++
+    ["-D_REENTRANT", s!"-I{leanInclude}"]
+
+  let flags: Array String := flags.toArray
+
+  buildO oFile srcJob #[] flags compiler
 
 def buildCMakeProject (repoDir : FilePath) (args : Array String): FetchM (Unit) := do
   logInfo s!"Building {repoDir} with CMake with args {args}"
