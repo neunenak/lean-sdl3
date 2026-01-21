@@ -44,17 +44,16 @@ target sdlMixerDir pkg : FilePath := do
   return .pure (pkg.dir / "vendor" / "SDL_mixer")
 
 def GitDep.clone (dep : GitDep) (dstDir : FilePath) : FetchM Unit := do
-  let doesExist ← dstDir.pathExists
-  if !doesExist then
-    logInfo s!"Cloning {dep.repo} into {dstDir}"
-    let clone ← IO.Process.output { cmd := "git", args := #["clone", "--revision", dep.rev, "--single-branch", "--depth", "1", "--recursive", dep.repo, dstDir.toString] }
-    if clone.exitCode != 0 then
-      logError s!"Error cloning {dep.repo}: {clone.stderr}"
-    else
-      logInfo s!"{dep.repo} cloned successfully"
-      logInfo clone.stdout
-  else
+  if (<- dstDir.pathExists) then
     logInfo s!"Directory {dstDir} already exists, skipping clone"
+  else
+    logInfo s!"Cloning {dep.repo} into {dstDir}"
+    proc {
+      cmd := "git"
+      args := #["clone", "--revision", dep.rev,
+              "--single-branch", "--depth", "1", "--recursive", dep.repo, dstDir.toString
+              ]
+    }
 
 def copyBinaries (sourceDir : FilePath) : FetchM (Unit) := do
   -- manually copy the DLLs we need to .lake/build/bin/ in the root directory for the game to work
@@ -71,7 +70,7 @@ target sdl.o pkg : FilePath := do
   let srcJob ← sdl.c.fetch
   let oFile := pkg.buildDir / "c" / "sdl.o"
 
-  let leanInclude := (<- getLeanIncludeDir).toString
+  let leanInclude := <- getLeanIncludeDir
 
   let sdlRepoDir : FilePath ← (← sdlDir.fetch).await
   let sdlImageDir : FilePath ← (← sdlImageDir.fetch).await
