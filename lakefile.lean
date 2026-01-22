@@ -153,10 +153,9 @@ target libleansdl pkg : FilePath := do
   let sdlTtfRepoDir ← (← sdlTtfDir.fetch).await
   let sdlMixerRepoDir ← (← sdlMixerDir.fetch).await
 
-  sdlDep.clone sdlRepoDir
-  sdlImageDep.clone sdlImageRepoDir
-  sdlTtfDep.clone sdlTtfRepoDir
-  sdlMixerDep.clone sdlMixerRepoDir
+  for (dep, dir) in [(sdlDep, sdlRepoDir), (sdlImageDep, sdlImageRepoDir),
+                     (sdlTtfDep, sdlTtfRepoDir), (sdlMixerDep, sdlMixerRepoDir)] do
+    dep.clone dir
 
   -- build all the libraries we need
   buildCMakeProject sdlRepoDir #[]
