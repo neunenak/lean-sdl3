@@ -7,22 +7,30 @@ package SDL3
 structure GitDep where
   repo : String
   rev : String
+  name : String
+
+def GitDep.dir (dep : GitDep) (pkg : Package) : FilePath :=
+  pkg.dir / "vendor" / dep.name
 
 def sdlDep : GitDep := {
   repo := "https://github.com/libsdl-org/SDL.git"
   rev := "f3a9f66292d49322652be01ee93412d0e9b74f0b"
+  name := "SDL"
 }
 def sdlImageDep : GitDep := {
   repo := "https://github.com/libsdl-org/SDL_image.git"
   rev := "d354e3d5146117f8b2f14096800965e56f9f7bfc"
+  name := "SDL_image"
 }
 def sdlTtfDep : GitDep := {
   repo := "https://github.com/libsdl-org/SDL_ttf.git"
   rev := "6b6bd588e8646360b08f624fb601cc2ec75c6ada"
+  name := "SDL_ttf"
 }
 def sdlMixerDep : GitDep := {
   repo := "https://github.com/libsdl-org/SDL_mixer.git"
   rev := "5cdf029bae982df1d6c210f915fc151a616d982f"
+  name := "SDL_mixer"
 }
 -- TODO: at some point, we should figure out a better way to set the C compiler
 def compiler := if Platform.isWindows then "gcc" else "cc"
@@ -30,18 +38,6 @@ def compiler := if Platform.isWindows then "gcc" else "cc"
 input_file sdl.c where
   path := "c" / "sdl.c"
   text := true
-
-target sdlDir pkg : FilePath := do
-  return .pure (pkg.dir / "vendor" / "SDL")
-
-target sdlImageDir pkg : FilePath := do
-  return .pure (pkg.dir / "vendor" / "SDL_image")
-
-target sdlTtfDir pkg : FilePath := do
-  return .pure (pkg.dir / "vendor" / "SDL_ttf")
-
-target sdlMixerDir pkg : FilePath := do
-  return .pure (pkg.dir / "vendor" / "SDL_mixer")
 
 def GitDep.clone (dep : GitDep) (dstDir : FilePath) : FetchM Unit := do
   if (<- dstDir.pathExists) then
@@ -72,13 +68,8 @@ target sdl.o pkg : FilePath := do
 
   let leanInclude := <- getLeanIncludeDir
 
-  let sdlRepoDir : FilePath ← (← sdlDir.fetch).await
-  let sdlImageDir : FilePath ← (← sdlImageDir.fetch).await
-  let sdlTtfDir : FilePath ← (← sdlTtfDir.fetch).await
-  let sdlMixerDir : FilePath ← (← sdlMixerDir.fetch).await
-
-  let includeDirs : List FilePath := [sdlRepoDir, sdlImageDir, sdlTtfDir, sdlMixerDir].map
-    (fun dir => dir / "include/")
+  let includeDirs : List FilePath := [sdlDep, sdlImageDep, sdlTtfDep, sdlMixerDep].map
+    (fun dep => dep.dir pkg / "include/")
 
   let flags: List String := ["-fPIC"] ++
     includeDirs.map (fun dir => s!"-I{dir}") ++
@@ -118,58 +109,48 @@ def buildCMakeProject (repoDir : FilePath) (args : Array String): FetchM (Unit) 
 
   logInfo s!"{repoDir} built successfully"
 
-target libSDL3 : Dynlib := Job.async do
-  let sdlRepoDir : FilePath ← (← sdlDir.fetch).await
-  return {
+target libSDL3 pkg : Dynlib := do
+  return .pure {
     name := "SDL3"
-    path := sdlRepoDir / "build" / nameToSharedLib "SDL3"
+    path := sdlDep.dir pkg / "build" / nameToSharedLib "SDL3"
   }
 
-target libSDL3Image : Dynlib := Job.async do
-  let sdlImageRepoDir : FilePath ← (← sdlImageDir.fetch).await
-  return {
+target libSDL3Image pkg : Dynlib := do
+  return .pure {
     name := "SDL3_image"
-    path := sdlImageRepoDir / "build" / nameToSharedLib "SDL3_image"
+    path := sdlImageDep.dir pkg / "build" / nameToSharedLib "SDL3_image"
   }
 
-target libSDL3Ttf : Dynlib := Job.async do
-  let sdlTtfRepoDir : FilePath ← (← sdlTtfDir.fetch).await
-  return {
+target libSDL3Ttf pkg : Dynlib := do
+  return .pure {
     name := "SDL3_ttf"
-    path := sdlTtfRepoDir / "build" / nameToSharedLib "SDL3_ttf"
+    path := sdlTtfDep.dir pkg / "build" / nameToSharedLib "SDL3_ttf"
   }
 
-target libSDL3Mixer : Dynlib := Job.async do
-  let sdlMixerRepoDir : FilePath ← (← sdlMixerDir.fetch).await
-  return {
+target libSDL3Mixer pkg : Dynlib := do
+  return .pure {
     name := "SDL3_mixer"
-    path := sdlMixerRepoDir / "build" / nameToSharedLib "SDL3_mixer"
+    path := sdlMixerDep.dir pkg / "build" / nameToSharedLib "SDL3_mixer"
   }
 
 target libleansdl pkg : FilePath := do
-  -- clone the git repositories we need so we can build them later
-  let sdlRepoDir ← (← sdlDir.fetch).await
-  let sdlImageRepoDir ← (← sdlImageDir.fetch).await
-  let sdlTtfRepoDir ← (← sdlTtfDir.fetch).await
-  let sdlMixerRepoDir ← (← sdlMixerDir.fetch).await
+  let deps := [sdlDep, sdlImageDep, sdlTtfDep, sdlMixerDep]
 
-  for (dep, dir) in [(sdlDep, sdlRepoDir), (sdlImageDep, sdlImageRepoDir),
-                     (sdlTtfDep, sdlTtfRepoDir), (sdlMixerDep, sdlMixerRepoDir)] do
-    dep.clone dir
+  -- clone the git repositories we need so we can build them later
+  for dep in deps do
+    dep.clone (dep.dir pkg)
 
   -- build all the libraries we need
-  buildCMakeProject sdlRepoDir #[]
-  let sdlRepoBuildDir := sdlRepoDir / "build"
-  buildCMakeProject sdlImageRepoDir #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString]
-  buildCMakeProject sdlTtfRepoDir #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString,  s!"-DSDLTTF_VENDORED=true"]
-  buildCMakeProject sdlMixerRepoDir #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString,  s!"-DSDLMIXER_VENDORED=true"]
+  let sdlRepoBuildDir := sdlDep.dir pkg / "build"
+  buildCMakeProject (sdlDep.dir pkg) #[]
+  buildCMakeProject (sdlImageDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString]
+  buildCMakeProject (sdlTtfDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString, "-DSDLTTF_VENDORED=true"]
+  buildCMakeProject (sdlMixerDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString, "-DSDLMIXER_VENDORED=true"]
 
   logInfo "All libraries built successfully"
 
-  copyBinaries sdlRepoDir
-  copyBinaries sdlImageRepoDir
-  copyBinaries sdlTtfRepoDir
-  copyBinaries sdlMixerRepoDir
+  for dep in deps do
+    copyBinaries (dep.dir pkg)
 
   let sdlO ← sdl.o.fetch
   let name := nameToStaticLib "leansdl"
