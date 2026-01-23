@@ -35,10 +35,6 @@ def sdlMixerDep : GitDep := {
 -- TODO: at some point, we should figure out a better way to set the C compiler
 def compiler := if Platform.isWindows then "gcc" else "cc"
 
-input_file sdl.c where
-  path := "c" / "sdl.c"
-  text := true
-
 def GitDep.clone (dep : GitDep) (dstDir : FilePath) : FetchM Unit := do
   if (<- dstDir.pathExists) then
     logInfo s!"Directory {dstDir} already exists, skipping clone"
@@ -51,19 +47,12 @@ def GitDep.clone (dep : GitDep) (dstDir : FilePath) : FetchM Unit := do
               ]
     }
 
-def copyBinaries (sourceDir : FilePath) : FetchM (Unit) := do
-  -- manually copy the DLLs we need to .lake/build/bin/ in the root directory for the game to work
-  let dstDir := ((<- getRootPackage).binDir)
-  IO.FS.createDirAll dstDir
-  logInfo s!"Copying binaries from {sourceDir} to {dstDir}"
-  let binariesDir : FilePath := sourceDir / "build"
-  for entry in (← binariesDir.readDir) do
-    if entry.path.extension != none then
-      copyFile entry.path (dstDir / entry.path.fileName.get!)
-  pure ()
+input_file sdlSrc where
+  path := "c" / "sdl.c"
+  text := true
 
-target sdl.o pkg : FilePath := do
-  let srcJob ← sdl.c.fetch
+target sdlObj pkg : FilePath := do
+  let srcJob ← sdlSrc.fetch
   let oFile := pkg.buildDir / "c" / "sdl.o"
 
   let leanInclude := <- getLeanIncludeDir
@@ -141,18 +130,30 @@ target libleansdl pkg : FilePath := do
     dep.clone (dep.dir pkg)
 
   -- build all the libraries we need
-  let sdlRepoBuildDir := sdlDep.dir pkg / "build"
+  let sdlRepoBuildDir := (sdlDep.dir pkg / "build").toString
+
   buildCMakeProject (sdlDep.dir pkg) #[]
-  buildCMakeProject (sdlImageDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString]
-  buildCMakeProject (sdlTtfDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString, "-DSDLTTF_VENDORED=true"]
-  buildCMakeProject (sdlMixerDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir.toString, "-DSDLMIXER_VENDORED=true"]
+  buildCMakeProject (sdlImageDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir]
+  buildCMakeProject (sdlTtfDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir, "-DSDLTTF_VENDORED=true"]
+  buildCMakeProject (sdlMixerDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir, "-DSDLMIXER_VENDORED=true"]
 
   logInfo "All libraries built successfully"
 
-  for dep in deps do
-    copyBinaries (dep.dir pkg)
+  -- copy binaries
+  let binaryDstDir := ((<- getRootPackage).binDir)
+  IO.FS.createDirAll binaryDstDir
 
-  let sdlO ← sdl.o.fetch
+  -- manually copy the DLLs we need to .lake/build/bin/ in the root directory for the game to work
+  for dep in deps do
+    let sourceDir := dep.dir pkg
+    logInfo s!"Copying binaries from {sourceDir} to {binaryDstDir}"
+
+    let buildDir := sourceDir / "build"
+    for entry in (← buildDir.readDir) do
+      if entry.path.extension != none then
+        copyFile entry.path (binaryDstDir / entry.path.fileName.get!)
+
+  let sdlO ← sdlObj.fetch
   let name := nameToStaticLib "leansdl"
   buildStaticLib (pkg.staticLibDir / name) #[sdlO]
 
