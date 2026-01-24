@@ -75,9 +75,10 @@ def buildCMakeProject (repoDir : FilePath) (args : Array String): FetchM (Unit) 
   logInfo s!"Building {repoDir} with CMake with args {args}"
 
   let buildDir := repoDir / "build"
-  let buildDirExists ← buildDir.pathExists
 
-  if !buildDirExists then
+  if (<- buildDir.pathExists) then
+    logInfo "Build directory already exists, skipping configuration step"
+  else
     let configureBuild ← IO.Process.output {
       cmd := "cmake",
       args := #[
@@ -91,10 +92,11 @@ def buildCMakeProject (repoDir : FilePath) (args : Array String): FetchM (Unit) 
     if configureBuild.exitCode != 0 then
       logError s!"Error configuring build: {configureBuild.stderr}"
     logInfo "Build configured successfully"
-  else
-    logInfo "Build directory already exists, skipping configuration step"
 
-  let buildProject ← IO.Process.output { cmd := "cmake", args := #["--build", buildDir.toString, "--config", "Release"] }
+  let buildProject ← IO.Process.output { 
+    cmd := "cmake",
+    args := #["--build", buildDir.toString, "--config", "Release"]
+  }
   if buildProject.exitCode != 0 then
     logError s!"Error building project: {buildProject.exitCode}"
     logError s!"Project build stderr: {buildProject.stderr}"
