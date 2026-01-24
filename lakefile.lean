@@ -9,8 +9,23 @@ structure GitDep where
   rev : String
   name : String
 
+/-- The directory where this cloned repo should live --/
 def GitDep.dir (dep : GitDep) (pkg : Package) : FilePath :=
   pkg.dir / "vendor" / dep.name
+
+/-- Invoke git to clone this dependency to a vendored directory --/
+def GitDep.clone (dep : GitDep) (pkg : Package) : FetchM Unit := do
+  let dstDir := dep.dir pkg
+  if (<- dstDir.pathExists) then
+    logInfo s!"Directory {dstDir} already exists, skipping clone"
+  else
+    logInfo s!"Cloning {dep.repo} into {dstDir}"
+    proc {
+      cmd := "git"
+      args := #["clone", "--revision", dep.rev,
+              "--single-branch", "--depth", "1", "--recursive", dep.repo, dstDir.toString
+              ]
+    }
 
 def sdlDep : GitDep := {
   repo := "https://github.com/libsdl-org/SDL.git"
@@ -34,18 +49,6 @@ def sdlMixerDep : GitDep := {
 }
 -- TODO: at some point, we should figure out a better way to set the C compiler
 def compiler := if Platform.isWindows then "gcc" else "cc"
-
-def GitDep.clone (dep : GitDep) (dstDir : FilePath) : FetchM Unit := do
-  if (<- dstDir.pathExists) then
-    logInfo s!"Directory {dstDir} already exists, skipping clone"
-  else
-    logInfo s!"Cloning {dep.repo} into {dstDir}"
-    proc {
-      cmd := "git"
-      args := #["clone", "--revision", dep.rev,
-              "--single-branch", "--depth", "1", "--recursive", dep.repo, dstDir.toString
-              ]
-    }
 
 input_file sdlSrc where
   path := "c" / "sdl.c"
@@ -127,15 +130,16 @@ target libleansdl pkg : FilePath := do
 
   -- clone the git repositories we need so we can build them later
   for dep in deps do
-    dep.clone (dep.dir pkg)
+    dep.clone pkg
 
   -- build all the libraries we need
   let sdlRepoBuildDir := (sdlDep.dir pkg / "build").toString
+  let sdlDirFlag := s!"-DSDL3_DIR={sdlRepoBuildDir}"
 
   buildCMakeProject (sdlDep.dir pkg) #[]
-  buildCMakeProject (sdlImageDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir]
-  buildCMakeProject (sdlTtfDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir, "-DSDLTTF_VENDORED=true"]
-  buildCMakeProject (sdlMixerDep.dir pkg) #["-DSDL3_DIR=" ++ sdlRepoBuildDir, "-DSDLMIXER_VENDORED=true"]
+  buildCMakeProject (sdlImageDep.dir pkg) #[sdlDirFlag]
+  buildCMakeProject (sdlTtfDep.dir pkg) #[sdlDirFlag, "-DSDLTTF_VENDORED=true"]
+  buildCMakeProject (sdlMixerDep.dir pkg) #[sdlDirFlag, "-DSDLMIXER_VENDORED=true"]
 
   logInfo "All libraries built successfully"
 
