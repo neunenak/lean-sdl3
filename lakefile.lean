@@ -52,23 +52,6 @@ def sdlDeps : List GitDep := [sdlDep, sdlImageDep, sdlTtfDep, sdlMixerDep]
 -- TODO: at some point, we should figure out a better way to set the C compiler
 def compiler := if Platform.isWindows then "gcc" else "cc"
 
-target sdlObj pkg : FilePath := do
-  let srcJob ← inputTextFile (pkg.dir / "c" / "sdl.c")
-  let oFile := pkg.buildDir / "c" / "sdl.o"
-
-  let leanInclude := <- getLeanIncludeDir
-
-  let includeDirs : List FilePath := sdlDeps.map
-    (fun dep => dep.dir pkg / "include/")
-
-  let flags: List String := ["-fPIC"] ++
-    includeDirs.map (fun dir => s!"-I{dir}") ++
-    ["-D_REENTRANT", s!"-I{leanInclude}"]
-
-  let flags: Array String := flags.toArray
-
-  buildO oFile srcJob #[] flags compiler
-
 def buildCMakeProject (repoDir : FilePath) (args : Array String): FetchM (Unit) := do
   logInfo s!"Building {repoDir} with CMake with args {args}"
 
@@ -143,7 +126,16 @@ target libleansdl pkg : FilePath := do
       if entry.path.extension != none then
         copyFile entry.path (binaryDstDir / entry.path.fileName.get!)
 
-  let sdlO ← sdlObj.fetch
+  -- compile the Lean-SDL C glue code and bundle into a static library
+  let srcJob ← inputTextFile (pkg.dir / "c" / "sdl.c")
+  let oFile := pkg.buildDir / "c" / "sdl.o"
+  let leanInclude := <- getLeanIncludeDir
+  let includeDirs : List FilePath := sdlDeps.map
+    (fun dep => dep.dir pkg / "include/")
+  let flags: List String := ["-fPIC"] ++
+    includeDirs.map (fun dir => s!"-I{dir}") ++
+    ["-D_REENTRANT", s!"-I{leanInclude}"]
+  let sdlO ← buildO oFile srcJob #[] flags.toArray compiler
   let name := nameToStaticLib "leansdl"
   buildStaticLib (pkg.staticLibDir / name) #[sdlO]
 
