@@ -105,29 +105,17 @@ def buildCMakeProject (repoDir : FilePath) (args : Array String): FetchM (Unit) 
 
   logInfo s!"{repoDir} built successfully"
 
-target libSDL3 pkg : Dynlib := do
-  return .pure {
-    name := "SDL3"
-    path := sdlDep.dir pkg / "build" / nameToSharedLib "SDL3"
-  }
+target libSDL3 pkg : Dynlib :=
+  return .pure { name := "SDL3", path := sdlDep.dir pkg / "build" / nameToSharedLib "SDL3" }
 
-target libSDL3Image pkg : Dynlib := do
-  return .pure {
-    name := "SDL3_image"
-    path := sdlImageDep.dir pkg / "build" / nameToSharedLib "SDL3_image"
-  }
+target libSDL3Image pkg : Dynlib :=
+  return .pure { name := "SDL3_image", path := sdlImageDep.dir pkg / "build" / nameToSharedLib "SDL3_image" }
 
-target libSDL3Ttf pkg : Dynlib := do
-  return .pure {
-    name := "SDL3_ttf"
-    path := sdlTtfDep.dir pkg / "build" / nameToSharedLib "SDL3_ttf"
-  }
+target libSDL3Ttf pkg : Dynlib :=
+  return .pure { name := "SDL3_ttf", path := sdlTtfDep.dir pkg / "build" / nameToSharedLib "SDL3_ttf" }
 
-target libSDL3Mixer pkg : Dynlib := do
-  return .pure {
-    name := "SDL3_mixer"
-    path := sdlMixerDep.dir pkg / "build" / nameToSharedLib "SDL3_mixer"
-  }
+target libSDL3Mixer pkg : Dynlib :=
+  return .pure { name := "SDL3_mixer", path := sdlMixerDep.dir pkg / "build" / nameToSharedLib "SDL3_mixer" }
 
 target libleansdl pkg : FilePath := do
   -- clone the git repositories we need so we can build them later
