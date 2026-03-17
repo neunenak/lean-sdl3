@@ -52,12 +52,8 @@ def sdlDeps : List GitDep := [sdlDep, sdlImageDep, sdlTtfDep, sdlMixerDep]
 -- TODO: at some point, we should figure out a better way to set the C compiler
 def compiler := if Platform.isWindows then "gcc" else "cc"
 
-input_file sdlSrc where
-  path := "c" / "sdl.c"
-  text := true
-
 target sdlObj pkg : FilePath := do
-  let srcJob ← sdlSrc.fetch
+  let srcJob ← inputTextFile (pkg.dir / "c" / "sdl.c")
   let oFile := pkg.buildDir / "c" / "sdl.o"
 
   let leanInclude := <- getLeanIncludeDir
