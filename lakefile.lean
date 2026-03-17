@@ -47,6 +47,8 @@ def sdlMixerDep : GitDep := {
   rev := "5cdf029bae982df1d6c210f915fc151a616d982f"
   name := "SDL_mixer"
 }
+def sdlDeps : List GitDep := [sdlDep, sdlImageDep, sdlTtfDep, sdlMixerDep]
+
 -- TODO: at some point, we should figure out a better way to set the C compiler
 def compiler := if Platform.isWindows then "gcc" else "cc"
 
@@ -60,7 +62,7 @@ target sdlObj pkg : FilePath := do
 
   let leanInclude := <- getLeanIncludeDir
 
-  let includeDirs : List FilePath := [sdlDep, sdlImageDep, sdlTtfDep, sdlMixerDep].map
+  let includeDirs : List FilePath := sdlDeps.map
     (fun dep => dep.dir pkg / "include/")
 
   let flags: List String := ["-fPIC"] ++
@@ -128,10 +130,8 @@ target libSDL3Mixer pkg : Dynlib := do
   }
 
 target libleansdl pkg : FilePath := do
-  let deps := [sdlDep, sdlImageDep, sdlTtfDep, sdlMixerDep]
-
   -- clone the git repositories we need so we can build them later
-  for dep in deps do
+  for dep in sdlDeps do
     dep.clone pkg
 
   -- build all the libraries we need
@@ -150,7 +150,7 @@ target libleansdl pkg : FilePath := do
   IO.FS.createDirAll binaryDstDir
 
   -- manually copy the DLLs we need to .lake/build/bin/ in the root directory for the game to work
-  for dep in deps do
+  for dep in sdlDeps do
     let sourceDir := dep.dir pkg
     logInfo s!"Copying binaries from {sourceDir} to {binaryDstDir}"
 
