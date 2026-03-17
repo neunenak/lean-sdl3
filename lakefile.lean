@@ -163,11 +163,12 @@ target libleansdl pkg : FilePath := do
   let name := nameToStaticLib "leansdl"
   buildStaticLib (pkg.staticLibDir / name) #[sdlO]
 
-def libList : TargetArray Dynlib := #[libSDL3, libSDL3Image, libSDL3Ttf, libSDL3Mixer]
+def sdlLinkObjs : TargetArray FilePath := #[libleansdl]
+def sdlLinkLibs : TargetArray Dynlib := #[libSDL3, libSDL3Image, libSDL3Ttf, libSDL3Mixer]
 
 -- make sure to copy these link args into whatever project is using this library in order for it to work
 -- This is because without "-rpath=$ORIGIN", the Linux executable will not load dynlibs next to the executable (i.e., the SDL ones you've copied there).
-def moreLinkArgs: Array String := if Platform.isWindows
+def sdlLinkArgs : Array String := if Platform.isWindows
   then
     #[]
   else
@@ -175,19 +176,19 @@ def moreLinkArgs: Array String := if Platform.isWindows
 
 @[default_target]
 lean_lib SDL where
-  moreLinkObjs := #[libleansdl]
-  moreLinkLibs := libList
-  moreLinkArgs := moreLinkArgs
+  moreLinkObjs := sdlLinkObjs
+  moreLinkLibs := sdlLinkLibs
+  moreLinkArgs := sdlLinkArgs
 
 lean_exe «test-app» where
   root := `TestApp
-  moreLinkObjs := #[libleansdl]
-  moreLinkLibs := libList
-  moreLinkArgs := moreLinkArgs
+  moreLinkObjs := sdlLinkObjs
+  moreLinkLibs := sdlLinkLibs
+  moreLinkArgs := sdlLinkArgs
 
 lean_exe «webcam-app» where
-    root := `WebcamApp
-    moreLinkObjs := #[libleansdl]
-    moreLinkLibs := libList
-    moreLinkArgs := moreLinkArgs
+  root := `WebcamApp
+  moreLinkObjs := sdlLinkObjs
+  moreLinkLibs := sdlLinkLibs
+  moreLinkArgs := sdlLinkArgs
 
