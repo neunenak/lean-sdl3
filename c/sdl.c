@@ -111,12 +111,14 @@ static void sdl_camera_foreach(void * val, lean_obj_arg fn) {
 
 }
 static void sdl_camera_finalizer(void * h) {
+    SDL_CloseCamera((SDL_Camera*)h);
 }
 static lean_external_class * sdl_camera_spec_external_class = NULL;
 static void sdl_camera_spec_foreach(void * val, lean_obj_arg fn) {
 
 }
 static void sdl_camera_spec_finalizer(void * h) {
+    free(h);
 }
 
 static lean_external_class * sdl_camera_frame_external_class = NULL;
