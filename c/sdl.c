@@ -181,7 +181,7 @@ lean_obj_res sdl_create_window(b_lean_obj_arg title, uint32_t w, uint32_t h, uin
     const char* title_str = lean_string_cstr(title);
     SDL_Window* g_window = SDL_CreateWindow(title_str, (int)w, (int)h, flags);
     if (g_window == NULL) {
-        return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: SDL_CreateWindow failed")));
+        return lean_io_result_mk_error(lean_mk_string("C: SDL_CreateWindow failed"));
     }
     lean_object* external_window = lean_alloc_external(sdl_window_external_class, g_window);
     return lean_io_result_mk_ok(external_window);
@@ -204,7 +204,7 @@ lean_obj_res sdl_create_window_and_renderer(b_lean_obj_arg title, uint32_t w, ui
 
     //TODO: use SDL_GetError()
     if (!SDL_CreateWindowAndRenderer(title_str, (int)w, (int)h, flags, &g_window, &g_renderer)) {
-        return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: SDL_CreateWindowAndRenderer failed")));
+        return lean_io_result_mk_error(lean_mk_string("C: SDL_CreateWindowAndRenderer failed"));
     }
 
     // Wrap the SDL objects in Lean external objects
@@ -221,21 +221,21 @@ lean_obj_res sdl_create_window_and_renderer(b_lean_obj_arg title, uint32_t w, ui
 
 lean_obj_res sdl_set_render_draw_color(b_lean_obj_arg g_renderer, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     SDL_Renderer* renderer = (SDL_Renderer*)lean_get_external_data(g_renderer);
-    if (renderer == NULL) return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Renderer is NULL")));
+    if (renderer == NULL) return lean_io_result_mk_error(lean_mk_string("C: Renderer is NULL"));
     int32_t result = SDL_SetRenderDrawColor(renderer, r, g, b, a);
     return lean_io_result_mk_ok(lean_box_uint32(result));
 }
 
 lean_obj_res sdl_set_render_draw_color_float(b_lean_obj_arg renderer_obj, double r, double g, double b, double a) {
     SDL_Renderer* renderer = (SDL_Renderer*)lean_get_external_data(renderer_obj);
-    if (renderer == NULL) return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Renderer is NULL")));
+    if (renderer == NULL) return lean_io_result_mk_error(lean_mk_string("C: Renderer is NULL"));
     bool result = SDL_SetRenderDrawColorFloat(renderer, (float)r, (float)g, (float)b, (float)a);
     return lean_io_result_mk_ok(lean_box(result));
 }
 
 lean_obj_res sdl_render_clear(b_lean_obj_arg g_renderer, lean_obj_arg w) {
     SDL_Renderer* renderer = (SDL_Renderer*)lean_get_external_data(g_renderer);
-    if (renderer == NULL) return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Renderer is NULL")));
+    if (renderer == NULL) return lean_io_result_mk_error(lean_mk_string("C: Renderer is NULL"));
     int32_t result = SDL_RenderClear(renderer);
     return lean_io_result_mk_ok(lean_box_uint32(result));
 }
@@ -249,7 +249,7 @@ lean_obj_res sdl_render_present(b_lean_obj_arg g_renderer, lean_obj_arg w) {
 
 lean_obj_res sdl_render_fill_rect(b_lean_obj_arg g_renderer, b_lean_obj_arg rect_obj) {
     SDL_Renderer* renderer = (SDL_Renderer*)lean_get_external_data(g_renderer);
-    if (renderer == NULL) return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Renderer is NULL")));
+    if (renderer == NULL) return lean_io_result_mk_error(lean_mk_string("C: Renderer is NULL"));
 
     int32_t x = (int32_t)lean_ctor_get_uint32(rect_obj, 0);
     int32_t y = (int32_t)lean_ctor_get_uint32(rect_obj, 4);
@@ -338,7 +338,7 @@ lean_obj_res sdl_create_texture_from_surface(b_lean_obj_arg g_renderer, b_lean_o
     SDL_Surface * surface = (SDL_Surface *)lean_get_external_data(g_surface);
     if (!renderer || !surface) 
     {
-        return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Invalid renderer or surface")));
+        return lean_io_result_mk_error(lean_mk_string("C: Invalid renderer or surface"));
     }
     SDL_Texture * g_texture = SDL_CreateTextureFromSurface(renderer, surface);
 
@@ -401,7 +401,7 @@ lean_obj_res sdl_set_track_audio(b_lean_obj_arg g_track, b_lean_obj_arg g_audio,
     MIX_Track* track = (MIX_Track*)lean_get_external_data(g_track);
     MIX_Audio* audio = (MIX_Audio*)lean_get_external_data(g_audio);
     if (!track || !audio) {
-        return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Invalid track or audio")));
+        return lean_io_result_mk_error(lean_mk_string("C: Invalid track or audio"));
     }
     bool result = MIX_SetTrackAudio(track, audio);
     return lean_io_result_mk_ok(lean_box_uint32(result));
@@ -410,7 +410,7 @@ lean_obj_res sdl_set_track_audio(b_lean_obj_arg g_track, b_lean_obj_arg g_audio,
 lean_obj_res sdl_play_track(b_lean_obj_arg g_track, lean_obj_arg w) {
     MIX_Track* track = (MIX_Track*)lean_get_external_data(g_track);
     if (!track) {
-        return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Invalid track or audio")));
+        return lean_io_result_mk_error(lean_mk_string("C: Invalid track or audio"));
     }
     bool result = MIX_PlayTrack(track, 0);
     return lean_io_result_mk_ok(lean_box_uint32(result));
