@@ -78,7 +78,7 @@ def SDLWindow : Type := SDLWindow.nonemptyType.type
 instance SDLWindow.instNonempty : Nonempty SDLWindow := SDLWindow.nonemptyType.property
 
 @[extern "sdl_create_window"]
-opaque createWindow : String → Int32 → Int32 → UInt32 → SDLIO SDLWindow
+opaque createWindow : @& String → Int32 → Int32 → UInt32 → SDLIO SDLWindow
 
 private opaque SDLRenderer.nonemptyType : NonemptyType
 def SDLRenderer : Type := SDLRenderer.nonemptyType.type
@@ -88,7 +88,7 @@ instance SDLRenderer.instNonempty : Nonempty SDLRenderer := SDLRenderer.nonempty
 opaque createRenderer : @& SDLWindow → SDLIO SDLRenderer
 
 @[extern "sdl_create_window_and_renderer"]
-opaque createWindowAndRenderer : String -> Int32 -> Int32 -> UInt32 -> SDLIO (SDLWindow × SDLRenderer)
+opaque createWindowAndRenderer : @& String -> Int32 -> Int32 -> UInt32 -> SDLIO (SDLWindow × SDLRenderer)
 
 @[extern "sdl_set_render_draw_color"]
 opaque setRenderDrawColor : @& SDLRenderer → UInt8 → UInt8 → UInt8 → UInt8 → SDLIO Int32
@@ -191,7 +191,7 @@ opaque renderEntireTexture (renderer : @& SDLRenderer) (texture : @& SDLTexture)
 opaque renderTexture (renderer : @& SDLRenderer) (texture : @& SDLTexture) (srcX : Int64) (srcY : Int64) (srcW : Int64) (srcH : Int64) (dstX : Int64) (dstY : Int64) (dstW : Int64) (dstH : Int64) : SDLIO Int32
 
 @[extern "sdl_render_texture_rect"]
-opaque renderTextureRect (renderer : @& SDLRenderer) (texture : @& SDLTexture) (sourceRect : SDLFRect) (destRect : SDLFRect): SDLIO Bool
+opaque renderTextureRect (renderer : @& SDLRenderer) (texture : @& SDLTexture) (sourceRect : @& SDLFRect) (destRect : @& SDLFRect): SDLIO Bool
 
 @[extern "sdl_render_texture_fullscreen"]
 opaque renderTextureFullscreen (renderer : @& SDLRenderer) (texture : @& SDLTexture) : SDLIO Bool
@@ -210,7 +210,7 @@ opaque textToSurface (renderer : @& SDLRenderer) (font : @& SDLFont) (message : 
 opaque getMouseStateRaw : SDLIO UInt64
 
 @[extern "sdl_set_relative_mouse_mode"]
-opaque setRelativeMouseMode (window : SDLWindow) (enabled : Bool) : SDLIO UInt32
+opaque setRelativeMouseMode (window : @& SDLWindow) (enabled : Bool) : SDLIO UInt32
 
 def getMousePos : SDLIO (Int32 × Int32) := do
   let packed ← getMouseStateRaw
