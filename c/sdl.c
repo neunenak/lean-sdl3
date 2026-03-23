@@ -226,10 +226,10 @@ lean_obj_res sdl_set_render_draw_color(b_lean_obj_arg g_renderer, uint8_t r, uin
     return lean_io_result_mk_ok(lean_box_uint32(result));
 }
 
-lean_obj_res sdl_set_render_draw_color_float(b_lean_obj_arg renderer_obj, float r, float g, float b, float a) {
+lean_obj_res sdl_set_render_draw_color_float(b_lean_obj_arg renderer_obj, double r, double g, double b, double a) {
     SDL_Renderer* renderer = (SDL_Renderer*)lean_get_external_data(renderer_obj);
     if (renderer == NULL) return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Renderer is NULL")));
-    bool result = SDL_SetRenderDrawColorFloat(renderer, r, g, b, a);
+    bool result = SDL_SetRenderDrawColorFloat(renderer, (float)r, (float)g, (float)b, (float)a);
     return lean_io_result_mk_ok(lean_box(result));
 }
 
@@ -479,17 +479,17 @@ lean_obj_res sdl_render_texture_rect(b_lean_obj_arg renderer_obj, b_lean_obj_arg
     SDL_Renderer* renderer = (SDL_Renderer*)lean_get_external_data(renderer_obj);
     SDL_Texture* texture = (SDL_Texture*)lean_get_external_data(texture_obj);
 
-    float sx = lean_ctor_get_float(src, 0);
-    float sy = lean_ctor_get_float(src, 4);
-    float sw = lean_ctor_get_float(src, 8);
-    float sh = lean_ctor_get_float(src, 12);
-    SDL_FRect src_rect = { .x = sx, .y = sy, .w = sw, .h = sh };
+    double sx = lean_ctor_get_float(src, 0);
+    double sy = lean_ctor_get_float(src, sizeof(double));
+    double sw = lean_ctor_get_float(src, 2 * sizeof(double));
+    double sh = lean_ctor_get_float(src, 3 * sizeof(double));
+    SDL_FRect src_rect = { .x = (float)sx, .y = (float)sy, .w = (float)sw, .h = (float)sh };
 
-    float dx = lean_ctor_get_float(dst, 0);
-    float dy = lean_ctor_get_float(dst, 4);
-    float dw = lean_ctor_get_float(dst, 8);
-    float dh = lean_ctor_get_float(dst, 12);
-    SDL_FRect dst_rect = { .x = dx, .y = dy, .w = dw, .h = dh };
+    double dx = lean_ctor_get_float(dst, 0);
+    double dy = lean_ctor_get_float(dst, sizeof(double));
+    double dw = lean_ctor_get_float(dst, 2 * sizeof(double));
+    double dh = lean_ctor_get_float(dst, 3 * sizeof(double));
+    SDL_FRect dst_rect = { .x = (float)dx, .y = (float)dy, .w = (float)dw, .h = (float)dh };
 
     return lean_io_result_mk_ok(lean_box(SDL_RenderTexture(renderer, texture, &src_rect, &dst_rect)));
 }
