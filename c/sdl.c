@@ -652,15 +652,19 @@ lean_obj_res sdl_get_mouse_state(lean_obj_arg w) {
         mouse_cache.last_frame_tick = current_tick;
     }
 
-    uint64_t packed = ((uint64_t)(uint32_t)(int32_t)mouse_cache.x << 32) | 
-                      ((uint64_t)(uint32_t)(int32_t)mouse_cache.y << 16) |
-                      (uint64_t)mouse_cache.buttons;
+    // Pack into 64 bits: X[63:32] | Y[31:16] | buttons[15:0]
+    // X gets full 32 bits; Y and buttons are truncated to 16 bits each.
+    int32_t ix = (int32_t)mouse_cache.x;
+    int32_t iy = (int32_t)mouse_cache.y;
+    uint64_t packed = ((uint64_t)(uint32_t)ix << 32) |
+                      ((uint64_t)((uint32_t)iy & 0xFFFF) << 16) |
+                      ((uint64_t)(mouse_cache.buttons & 0xFFFF));
     return lean_io_result_mk_ok(lean_box_uint64(packed));
 }
 
 lean_obj_res sdl_set_relative_mouse_mode(b_lean_obj_arg g_window, bool enabled, lean_obj_arg w) {
     SDL_Window* window = (SDL_Window*)lean_get_external_data(g_window);
-    if (window == NULL) return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string("C: Window is NULL")));
+    if (window == NULL) return lean_io_result_mk_error(lean_mk_string("C: Window is NULL"));
     int32_t result = SDL_SetWindowRelativeMouseMode(window, enabled);
     mouse_cache.relative_mode = enabled;
     mouse_cache.last_frame_tick = 0; // Force refresh
