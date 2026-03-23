@@ -99,13 +99,6 @@ static void sdl_mixer_audio_foreach(void * val, lean_obj_arg fn) {
 
 }
 
-static lean_external_class* sdl_pixels_external_class = NULL;
-static void sdl_pixels_foreach(void* vald, lean_obj_arg fn) {
-}
-static void sdl_pixels_finalizer(void*h) {
-}
-
-
 static lean_external_class * sdl_camera_external_class = NULL;
 static void sdl_camera_foreach(void * val, lean_obj_arg fn) {
 
@@ -141,7 +134,6 @@ lean_obj_res sdl_init(uint32_t flags, lean_obj_arg w) {
     sdl_camera_external_class = lean_register_external_class(sdl_camera_finalizer, sdl_camera_foreach);
     sdl_camera_spec_external_class = lean_register_external_class(sdl_camera_spec_finalizer, sdl_camera_spec_foreach);
     sdl_camera_frame_external_class = lean_register_external_class(sdl_camera_frame_finalizer, sdl_camera_frame_foreach);
-    sdl_pixels_external_class = lean_register_external_class(sdl_pixels_finalizer, sdl_pixels_foreach);
 
     return lean_io_result_mk_ok(lean_box_uint32(result));
 }
@@ -312,13 +304,6 @@ int32_t sdl_Surface_get_h(b_lean_obj_arg surface_obj) {
     return (int32_t)surface->h;
 }
 
-lean_object* sdl_Surface_get_pixels(b_lean_obj_arg surface_obj) {
-    SDL_Surface* surface = (SDL_Surface*)lean_get_external_data(surface_obj);
-    void* pixels = surface->pixels;
-    lean_object* external_pixels = lean_alloc_external(sdl_pixels_external_class, pixels);
-    return external_pixels;  // Not wrapped in IO - Lean expects Pixels directly
-}
-
 int32_t sdl_Surface_get_pitch(b_lean_obj_arg surface_obj) {
     SDL_Surface* surface = (SDL_Surface*)lean_get_external_data(surface_obj);
     return (int32_t)surface->pitch;
@@ -353,11 +338,24 @@ lean_obj_res sdl_create_texture_from_surface(b_lean_obj_arg g_renderer, b_lean_o
     return lean_io_result_mk_ok(external_texture);
 }
 
-lean_obj_res sdl_update_texture(b_lean_obj_arg texture_obj, b_lean_obj_arg pixels_obj, int32_t pitch) {
+lean_obj_res sdl_update_texture(b_lean_obj_arg texture_obj, b_lean_obj_arg byte_array, int32_t pitch) {
     SDL_Texture * texture = (SDL_Texture *)lean_get_external_data(texture_obj);
-    void* pixels = lean_get_external_data(pixels_obj);  // Pixels is void*, not SDL_Surface*
+    void* pixels = (void*)lean_sarray_cptr(byte_array);
 
     bool result = SDL_UpdateTexture(texture, NULL, pixels, pitch);
+    return lean_io_result_mk_ok(lean_box(result));
+}
+
+// Zero-copy optimization: updates a texture directly from an SDL_Surface's
+// pixel buffer, avoiding the intermediate ByteArray copy. This is not
+// strictly faithful to the SDL_UpdateTexture C API (which takes a void*),
+// but is safe because the surface is borrowed for the duration of the call,
+// preventing the GC from freeing the pixel data mid-use.
+lean_obj_res sdl_update_texture_from_surface(b_lean_obj_arg texture_obj, b_lean_obj_arg surface_obj) {
+    SDL_Texture * texture = (SDL_Texture *)lean_get_external_data(texture_obj);
+    SDL_Surface * surface = (SDL_Surface *)lean_get_external_data(surface_obj);
+
+    bool result = SDL_UpdateTexture(texture, NULL, surface->pixels, surface->pitch);
     return lean_io_result_mk_ok(lean_box(result));
 }
 

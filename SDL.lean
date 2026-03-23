@@ -132,10 +132,6 @@ instance SDLSurface.instNonempty : Nonempty SDLSurface := SDLSurface.nonemptyTyp
 
 namespace SDLSurface
 
-private opaque Pixels.nonemptyType : NonemptyType
-def Pixels: Type := Pixels.nonemptyType.type
-instance PIxels.instNonempty : Nonempty Pixels := Pixels.nonemptyType.property
-
 @[extern "sdl_Surface_get_format"]
 opaque format : @& SDLSurface -> UInt32
 
@@ -144,9 +140,6 @@ opaque w : @& SDLSurface -> Int32
 
 @[extern "sdl_Surface_get_h"]
 opaque h : @& SDLSurface -> Int32
-
-@[extern "sdl_Surface_get_pixels"]
-opaque pixels : @& SDLSurface -> Pixels
 
 @[extern "sdl_Surface_get_pitch"]
 opaque pitch : @& SDLSurface -> Int32
@@ -167,7 +160,16 @@ opaque createTextureFromSurface
 
 -- TODO handle SDLRect argument
 @[extern "sdl_update_texture"]
-opaque updateTexture (texture: @& SDLTexture) (pixels: @& SDLSurface.Pixels) (pitch: Int32): SDLIO Bool
+opaque updateTexture (texture: @& SDLTexture) (pixels: @& ByteArray) (pitch: Int32): SDLIO Bool
+
+-- Zero-copy optimization: updates a texture directly from an SDL_Surface's
+-- pixel buffer, avoiding the intermediate ByteArray copy required by
+-- updateTexture. This is not strictly faithful to the SDL_UpdateTexture C API
+-- (which takes a generic void* for pixels), but is safe because the surface
+-- is borrowed (@&) for the duration of the call, preventing the GC from
+-- collecting the surface (and its pixel data) while the update is in progress.
+@[extern "sdl_update_texture_from_surface"]
+opaque updateTextureFromSurface (texture: @& SDLTexture) (surface: @& SDLSurface): SDLIO Bool
 
 
 def loadImageTexture

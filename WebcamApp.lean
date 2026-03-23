@@ -106,10 +106,8 @@ partial def webcamLoop (stateRef: IO.Ref WebcamState): IO Unit := do
         let cameraTexture ← SDL.createTexture state.renderer cameraFrame.format SDL.SDL_TEXTUREACCESS_STREAMING w h
         stateRef.modify fun s => { s with texture := some cameraTexture }
       | some tx =>
-        -- Subsequent frames: update the texture
-        let pixels := cameraFrame.pixels
-        let pitch := cameraFrame.pitch
-        let _ ← SDL.updateTexture tx pixels pitch
+        -- Subsequent frames: update the texture directly from the camera frame
+        let _ ← SDL.updateTextureFromSurface tx cameraFrame
 
       SDL.releaseCameraFrame state.camera cameraFrame
 
