@@ -31,3 +31,14 @@ _build binary-name:
 _perform_nix_patch binary-name:
     patchelf --set-interpreter /usr/lib/ld-linux-x86-64.so.2 .lake/build/bin/{{binary-name}}
     patchelf --set-rpath '$ORIGIN:/usr/lib' .lake/build/bin/{{binary-name}}
+
+
+# Build the C version of the SDL3 webcam
+[group: "C_build"]
+build-c-webcam-demo:
+    @just _build-c-example examples/sdl-webcam-example.c c-webcam-example
+
+# Build one of the C SDL3 examples
+[group: "C_build"]
+_build-c-example c-sourcefile binary-name:
+    gcc -lSDL3 {{c-sourcefile}} -o {{binary-name}}
