@@ -63,7 +63,7 @@ partial def webcamLoop (stateRef: IO.Ref WebcamState): IO Unit := do
     if state.running then
       webcamLoop stateRef
 
-partial def run : IO Unit := do
+def run : IO Unit := do
   unless (← SDL.init (SDL.SDL_INIT_VIDEO ||| SDL.SDL_INIT_CAMERA)) == 1 do
     IO.println "Failed to initialize SDL"
     return
