@@ -38,6 +38,10 @@ _perform_nix_patch binary-name:
 build-c-webcam-demo:
     @just _build-c-example examples/sdl-webcam-example.c c-webcam-example
 
+[group: "C_build"]
+build-c-gamepad-example:
+    @just _build-c-example examples/sdl-gamepad-example.c c-gamepad-example
+
 # Build one of the C SDL3 examples
 [group: "C_build"]
 _build-c-example c-sourcefile binary-name:
